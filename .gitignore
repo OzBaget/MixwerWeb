@@ -1,0 +1,16 @@
+
+# Ignore Visual Studio Code project settings.
+.vscode
+
+# Ignore JetBreans project settings.
+.idea
+
+# Ignore python cache files.
+__pycache__
+
+# Python Virutal Environment
+venv
+.venv
+
+# MyPy cache
+.mypy_cache
