@@ -1,0 +1,9 @@
+Flask
+Flask-Cors
+pytesseract
+opencv-python-headless
+numpy
+Pillow
+pdf2image
+PyPDF4
+gunicorn
