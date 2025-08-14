@@ -5,6 +5,7 @@ import pytesseract
 import cv2
 
 from FunctionalScripts import functionalFiles, editPng
+os.environ.setdefault('TESSDATA_PREFIX', '/usr/share/tesseract-ocr/5/tessdata/')
 
 ouput_directory = "Local storage of images\\"
 
@@ -85,7 +86,7 @@ def last_occurrence(word, array):
 
 def find_first_words(path, answersId=[], fromQ=True, fixOCRAnswers=False):
     image = cv2.imread(path)
-    boxes = pytesseract.image_to_data(image, lang='heb', config='--oem 2 --psm 6',
+    boxes = pytesseract.image_to_data(image, lang='heb+eng', config='--oem 1 --psm 6',
                                       output_type=pytesseract.Output.DICT)
     # Filter only the first word in line
     first_words_boxes = {'text': [], 'left': [], 'top': [], 'width': [], 'height': []}
