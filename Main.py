@@ -1,93 +1,105 @@
-
 from Logicalscripts import *
 from FunctionalScripts import *
-
+import os
 
 successPdf = []
 answersId = []
 
-output_directory = "Local storage of images\\"
-import os
-base, ext = os.path.splitext(os.path.basename(path_original_pdf))
-
+# ברירת מחדל—ב-API אנחנו ממילא נדרוס את זה לנתיב זמני
+output_directory = "Local storage of images" + os.sep
 
 
 def blendPdf():
-    # Convert test .pdf to page.png
+    """
+    מריץ את כל הפייפליין על path_original_pdf (מוגדר בתוך main),
+    ומחזיר נתיב-בסיס (ללא .pdf) של הקובץ הסופי.
+    """
+    # Convert .pdf to page .png
     path_originial_pages_png = functionalFiles.pdf_to_png(path_original_pdf, output_directory)
 
-    # TODO dont merge the pages because the ocr is less good, see what to do that it will be splited pages
-    # Merge the pages
-    pathOfMerge = functionalFiles.combineFiles(path_originial_pages_png, output_directory + 'result')
+    # (אופציונלי) איחוד עמודים לתוצאה ביניים
+    functionalFiles.combineFiles(path_originial_pages_png, os.path.join(output_directory, 'result'))
 
-    # Find how much q and a there are
-    # make each q to .png
+    # הפקת שאלות
     arrayOfQuestions, numQ = exportPng.export_questions(path_originial_pages_png, output_directory)
     print("Success export Q\n")
-    # make each a to .png
+
+    # הפקת תשובות לכל שאלה
     for pathQ in arrayOfQuestions:
         global answersId
         answersId = logicalList.findNumAnswers(pathQ)
         exportPng.export_answers(pathQ, answersId, output_directory)
-        print("Success export A in Q {}\n".format(pathQ))
+        print(f"Success export A in Q {pathQ}\n")
 
-    # crop each a
+    # חיתוך תשובות
     logicalPng.cropAnswers()
-    print("Success Croping\n")
+    print("Success Cropping\n")
 
-    # Mix the order of the answer
+    # ערבוב תשובות
     mixAnswers = logicalList.mixfiles()
     print("Success Mixing\n")
-    # Make answers and questions to pages .png
+
+    # הרכבת דפי PNG סופיים
     paths_of_pages = logicalPng.combineFilestoPages(mixAnswers, output_directory)
     print("Success final pages\n")
 
-    # Add answers page
+    # הוספת דף תשובות
     answer_page_path, path_answers = logicalPng.createAnswersPage(mixAnswers)
     paths_of_pages = paths_of_pages + answer_page_path
     print("Success answer page\n")
-    # Make .png to .pdf
-    paths_of_pages_pdf = []
-    for current_page in paths_of_pages:
-        paths_of_pages_pdf.append(functionalFiles.png_to_pdf(current_page))
-    print("Success convert pages to.pdf\n")
 
-    ouput_pdf_path = "Final PDFs\\" + path_original_pdf[path_original_pdf.rfind("/") + 1:-4] + " מעורבל"
-    functionalFiles.merge_pdf(paths_of_pages_pdf,
-                        ouput_pdf_path)
+    # המרת PNG ל-PDF
+    paths_of_pages_pdf = [functionalFiles.png_to_pdf(p) for p in paths_of_pages]
+    print("Success convert pages to .pdf\n")
+
+    # יצירת שם קובץ סופי—נייד לכל מערכת
+    base, ext = os.path.splitext(os.path.basename(path_original_pdf))
+    final_dir = os.path.join("Final PDFs")
+    os.makedirs(final_dir, exist_ok=True)
+    ouput_pdf_path = os.path.join(final_dir, f"{base} מעורבל")
+
+    # מיזוג לכל PDF אחד
+    functionalFiles.merge_pdf(paths_of_pages_pdf, ouput_pdf_path)
     print("Success merge pages\n")
 
-    functionalFiles.delete_files(tuple(functionalFiles.getFilesPaths()[0]+B for B in functionalFiles.getFilesPaths()[1]))
+    # ניקוי קבצים זמניים
+    tmp_dir, files = functionalFiles.getFilesPaths()
+    functionalFiles.delete_files(tuple(os.path.join(tmp_dir, fname) for fname in files))
 
     return ouput_pdf_path
 
 
 def main(array_paths):
-    '''
-    First conver the PDF to PNG files and combine and delete them.
-    The answers and questions are exported to PNG files.
-    We mix the answers and export to PDF
-    '''
+    """
+    מקבל רשימת נתיבי PDF, מריץ את הפייפליין לכל קובץ,
+    ומחזיר (רשימת נתיבי PDF סופיים, דגל הצלחה).
+    """
     global successPdf
     successPdf = []
     failPdf = []
+
     for pdf_file_path in array_paths:
+        # הגדרת הקובץ הנוכחי כגלובלי ל-blendPdf
         global path_original_pdf
         path_original_pdf = pdf_file_path
-        fileNameEnd = f"{base} מעורבל{ext}"
-        try:
-            # zip all the successPdf
-            successPdf.append(blendPdf() + ".pdf")
 
-            print("SUCCESS {}".format(fileNameEnd))
+        # שם לתצוגה/לוג
+        base, ext = os.path.splitext(os.path.basename(path_original_pdf))
+        fileNameEnd = f"{base} מעורבל{ext}"
+
+        try:
+            # blendPdf מחזיר נתיב בלי סיומת; כאן מוסיפים ".pdf"
+            successPdf.append(blendPdf() + ".pdf")
+            print(f"SUCCESS {fileNameEnd}")
         except Exception as e:
-            print("NOT  SUCCESS {}".format(fileNameEnd) + " ERROR: ", e)
+            print(f"NOT  SUCCESS {fileNameEnd} ERROR: {e}")
             failPdf.append(pdf_file_path)
-    return successPdf,successPdf != []
+
+    return successPdf, successPdf != []
 
 
 if __name__ == "__main__":
-    main()
+    main([])  # הפעלה ידנית (לא בשימוש בשרת)
 
 
 def get_ouput_directory():
