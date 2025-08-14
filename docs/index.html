@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8">
+<form id="f">
+  <input type="file" name="files" accept="application/pdf" multiple required>
+  <button>הרץ</button>
+</form>
+<script>
+const API = "https://mixwerweb-api.onrender.com/process";
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const res = await fetch(API, { method: 'POST', body: fd });
+  if (!res.ok) { alert('Error ' + res.status); return; }
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mixwer_results.zip';
+  a.click();
+});
+</script>
