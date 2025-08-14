@@ -7,6 +7,8 @@ successPdf = []
 answersId = []
 
 output_directory = "Local storage of images\\"
+import os
+base, ext = os.path.splitext(os.path.basename(path_original_pdf))
 
 
 
@@ -72,7 +74,7 @@ def main(array_paths):
     for pdf_file_path in array_paths:
         global path_original_pdf
         path_original_pdf = pdf_file_path
-        fileNameEnd = path_original_pdf[path_original_pdf.rfind("\\") + 1:-4] + " מעורבל" + path_original_pdf[-4:]
+        fileNameEnd = f"{base} מעורבל{ext}"
         try:
             # zip all the successPdf
             successPdf.append(blendPdf() + ".pdf")
