@@ -1,19 +1,97 @@
-<!doctype html><meta charset="utf-8">
+<!doctype html>
+<html lang="he" dir="rtl">
+<meta charset="utf-8">
+<title>Mixwer – העלאת PDFים</title>
+<style>
+  body { font-family: system-ui, Arial, sans-serif; max-width: 720px; margin: 3rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; margin-bottom: 1rem; }
+  form { display: flex; gap: .5rem; align-items: center; margin-bottom: .75rem; }
+  #status { margin-top: .5rem; white-space: pre-wrap; }
+  button { padding: .45rem 1rem; cursor: pointer; }
+  .ok { color: #0a7d2f; }
+  .warn { color: #c77700; }
+  .err { color: #b00020; }
+</style>
+
+<h1>Mixwer – העלה PDFים וקבל ZIP</h1>
+
 <form id="f">
-  <input type="file" name="files" accept="application/pdf" multiple required>
-  <button>הרץ</button>
+  <input type="file" id="files" name="files" accept="application/pdf" multiple required>
+  <button type="submit">הרץ</button>
 </form>
+
+<div id="status" class="warn">בודק חיבור לשרת…</div>
+
 <script>
-const API = "https://mixwerweb-api.onrender.com/process";
-document.getElementById('f').addEventListener('submit', async (e) => {
+const API_BASE = "https://mixwerweb-api.onrender.com";
+const ENDPOINT  = API_BASE + "/process";
+const statusEl  = document.getElementById('status');
+const formEl    = document.getElementById('f');
+const filesEl   = document.getElementById('files');
+
+// בדיקת זמינות שרת
+(async function ping() {
+  try {
+    const r = await fetch(API_BASE + "/ping", { cache: "no-store" });
+    if (r.ok) {
+      statusEl.textContent = "שרת זמין ✔︎  (אם זו הפעלה ראשונה ייתכן עיכוב של ~30–50 שניות)";
+      statusEl.className = "ok";
+    } else {
+      statusEl.textContent = "שרת לא מגיב (PING " + r.status + ")";
+      statusEl.className = "err";
+    }
+  } catch (e) {
+    statusEl.textContent = "שגיאת רשת ב־/ping: " + e.message;
+    statusEl.className = "err";
+  }
+})();
+
+// שליחה עם timeout (ברירת מחדל 5 דקות)
+formEl.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  const res = await fetch(API, { method: 'POST', body: fd });
-  if (!res.ok) { alert('Error ' + res.status); return; }
-  const blob = await res.blob();
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'mixwer_results.zip';
-  a.click();
+  if (!filesEl.files.length) {
+    alert("בחר קובץ/ים קודם");
+    return;
+  }
+
+  const fd = new FormData(formEl);
+  const controller = new AbortController();
+  const timeoutMs = 5 * 60 * 1000; // 5 דקות
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+
+  statusEl.textContent = "מעבד… (זה יכול לקחת זמן בקבצים גדולים)";
+  statusEl.className = "warn";
+
+  try {
+    const res = await fetch(ENDPOINT, { method: "POST", body: fd, signal: controller.signal });
+    clearTimeout(t);
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      alert("Error " + res.status + (txt ? (": " + txt) : ""));
+      statusEl.textContent = "שגיאה: " + res.status + (txt ? (" – " + txt) : "");
+      statusEl.className = "err";
+      return;
+    }
+
+    const reqId = res.headers.get("X-Request-ID") || "";
+    const blob  = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = "mixwer_results.zip";
+    a.click();
+
+    statusEl.textContent = "הורדה הושלמה ✔︎" + (reqId ? ("  (Request-ID: " + reqId + ")") : "");
+    statusEl.className = "ok";
+  } catch (err) {
+    clearTimeout(t);
+    if (err.name === "AbortError") {
+      statusEl.textContent = "בוטל עקב Timeout (" + (timeoutMs/1000) + "ש׳). נסה עם PDF קטן יותר.";
+    } else {
+      statusEl.textContent = "שגיאת רשת: " + err.message;
+    }
+    statusEl.className = "err";
+  }
 });
 </script>
+</html>
