@@ -4,6 +4,7 @@ import pytesseract
 import cv2
 
 from Logicalscripts import logicalList
+os.environ.setdefault('TESSDATA_PREFIX', '/usr/share/tesseract-ocr/5/tessdata/')
 
 def rightFirstWordToBox(path, answersId):
     image = cv2.imread(path)
