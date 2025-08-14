@@ -31,26 +31,42 @@ def create_zip(files, zip_filename):
     #return zip_filename
 
 
-#convert .png to .pdf
+# convert .png to .pdf (שדרוג קטן, לא חובה)
 def png_to_pdf(sourcePath):
-    png = Image.open(sourcePath)
-    im_1 = png.convert('RGB')
-    im_1.save(sourcePath[:-4]+".pdf")
-    return sourcePath[:-4]+".pdf"
+    out = os.path.splitext(sourcePath)[0] + ".pdf"
+    with Image.open(sourcePath) as png:
+        png.convert('RGB').save(out)
+    return out
 
-#Conver .pdf to .png and crop the begin and the end of the page
-def pdf_to_png(pathSource, pathDest):
-    pages = convert_from_path(pathSource)
+# Convert .pdf to .png and crop the begin and the end of the page
+def pdf_to_png(pathSource, pathDest, dpi=150, margin_top=150, margin_bottom=150):
+    # ודא שתיקיית היעד קיימת
+    os.makedirs(pathDest, exist_ok=True)
+
+    # רינדור תמונות מה-PDF – מהיר ויעיל יותר
+    pages = convert_from_path(pathSource, dpi=dpi, fmt='png', thread_count=2)
+
     paths = []
-    for i, page in enumerate(pages):
-        (width, height) = page.size
-        crop_box = (0, 0+150, width, height - 150)
-        page = page.crop(crop_box)
-        paths.append(pathDest + f'page_{i}.png')
-        page.save(pathDest + f'page_{i}.png', 'PNG')
-        editPng.cropSpaceEndPng(pathDest + f'page_{i}.png')
-    return paths
+    base = os.path.splitext(os.path.basename(pathSource))[0]
 
+    for i, page in enumerate(pages, start=1):
+        width, height = page.size
+
+        # חיתוך שוליים בטוח לפי גובה הדף
+        top = min(margin_top, height)
+        bottom = min(margin_bottom, max(0, height - top))
+        crop_box = (0, top, width, height - bottom)
+        page = page.crop(crop_box)
+
+        out = os.path.join(pathDest, f"{base}_page_{i}.png")
+        page.save(out, 'PNG')
+
+        # ניקוי רווחים בסוף התמונה (כמו שהיה אצלך)
+        editPng.cropSpaceEndPng(out)
+
+        paths.append(out)
+
+    return paths
 
 def delete_files(paths):
     for i in range(len(paths)):
