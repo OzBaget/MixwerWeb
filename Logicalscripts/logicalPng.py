@@ -9,7 +9,7 @@ def createAnswersPage(path_answers):
     PAGE_WIDTH = 1700
     image_array = []
     num_answer = 1
-    prefix_path = path_answers[1][:path_answers[1].rfind("\\") + 1]
+    prefix_path = os.path.dirname(path_answers[1]) + os.sep
     current_path = ""
 
     num_q = 0
