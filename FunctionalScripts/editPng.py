@@ -37,7 +37,9 @@ def lastWhiteLineCoordPng(path):
     # Get the shape of the image
     height, width = gray.shape
     # Calculate the average intensity for each row
-    avg_intensity = [sum(row) / width for row in gray]
+    gray = np.asarray(gray, dtype=np.float32)   # מבטל overflow
+    width = gray.shape[1]
+    avg_intensity = gray.mean(axis=1) 
 
     # Find the first row where the average intensity is less than the threshold
     for i, intensity in enumerate(avg_intensity[::-1]):
