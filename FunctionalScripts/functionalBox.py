@@ -2,6 +2,7 @@ import copy
 
 import pytesseract
 import cv2
+import os
 
 from Logicalscripts import logicalList
 os.environ.setdefault('TESSDATA_PREFIX', '/usr/share/tesseract-ocr/5/tessdata/')
